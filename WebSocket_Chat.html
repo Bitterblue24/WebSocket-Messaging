@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        let name = "Unknown User";
+
+        // Connect to the WebSocket server
+        const socket = io.connect('https://pleased-closely-doberman.ngrok-free.app');
+
+        // Update the textarea with messages from the server
+        socket.on('message', function(data) {
+            const messageOutput = document.getElementById('messageOutput');
+            const Debug_Window = document.getElementById('Debug_Window');
+
+            if (data.type === 'history') {
+                const messageHistory = data.data;
+                messageOutput.value = messageHistory.join('\n');
+                messageOutput.scrollTop = messageOutput.scrollHeight;
+            } else if (data.type === 'message') {
+                if (data.data.includes("Name=")) {
+                    let some_name = data.data.replace("Name=", "").trim();
+                    let some_name1 = some_name.split(":")[1].trim();
+                    let new_name = some_name1;
+                    Debug_Window.value += `Name changed to: ${new_name}\n`;
+                    const name_tag = document.getElementById('name_tag');
+                    name = new_name;
+                    name_tag.value = name;
+                    Debug_Window.scrollTop = Debug_Window.scrollHeight;
+                } else {
+                    const name_tag = document.getElementById('name_tag');
+                    name = name_tag.value;
+                    Debug_Window.value += `${data.data}\n`;
+                    Debug_Window.scrollTop = Debug_Window.scrollHeight;
+                }
+            }
+        });
+
+        window.onload = function() {
+            let storedName = sessionStorage.getItem('name');
+            if (storedName) {
+                name = storedName;
+                document.getElementById('name_tag').value = name;
+            } else {
+                document.getElementById('name_tag').value = "Unknown user";
+            }
+        };
+
+        function resetName() {
+            sessionStorage.removeItem('name');
+            document.getElementById('name_tag').value = document.getElementById('messageInput').value;
+            let new_name = document.getElementById('messageInput').value;
+            const Debug_Window = document.getElementById('Debug_Window');
+            Debug_Window.value += `Name changed to: ${new_name}\n`;
+            const name_tag = document.getElementById('name_tag');
+            name = new_name;
+            name_tag.value = name;
+            Debug_Window.scrollTop = Debug_Window.scrollHeight;
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value = "";
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+
+            if (message) {
+                socket.send(`${name}:${message}`);
+                messageInput.value = '';
+            }
+
+            return false;
+        }
+    </script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #4a90e2, #9013fe);
+            color: #ffffff;
+        }
+
+        h1, h3 {
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        textarea {
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            border: 2px solid #ffffff;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            outline: none;
+            resize: none;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        textarea:focus {
+            border-color: #ffd700;
+        }
+
+        form {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #ffffff;
+            border-radius: 8px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="text"]:focus {
+            border-color: #ffd700;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            background-color: #ffd700;
+            color: #000;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: #ffffff;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        div {
+            width: 100%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Chat</h1>
+    <div>
+        <textarea id="name_tag" placeholder="Unknown Name" readonly></textarea>
+    </div>
+    <h3>All Messages</h3>
+    <div>
+        <textarea id="messageOutput" rows="10" readonly></textarea>
+    </div>
+    <div>
+        <textarea id="Debug_Window" rows="5" readonly></textarea>
+    </div>
+    <form onsubmit="return sendMessage();">
+        <input type="text" id="messageInput" placeholder="Type a message..." required>
+        <button type="submit">Send</button>
+		<button onclick="resetName()">Click to set name</button>
+    </form>
+</body>
+</html>
